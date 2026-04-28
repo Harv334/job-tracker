@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { prettyStage, prettySource } from '../utils/stats';
 import { exportCsv, importCsv, downloadFile } from '../utils/csv';
+import { exportXlsx } from '../utils/xlsx';
 import { saveApps, loadSampleIntoStorage } from '../data';
 import { openJdExtractModal } from './ai-jd-modal';
 import { mergeExtracted } from '../ai/extract';
@@ -48,6 +49,7 @@ export function renderSpreadsheet(
       <button class="btn-secondary" data-act="add-from-jd" title="Paste a JD, AI fills the row">+ Add from JD</button>
       <button class="btn-secondary" data-act="import">Import CSV</button>
       <button class="btn-secondary" data-act="export">Export CSV</button>
+      <button class="btn-secondary" data-act="export-xlsx">Export Excel</button>
       <input type="file" accept=".csv,text/csv" class="hidden" data-act="file" />
     </div>
     <div class="flex items-center gap-2">
@@ -247,7 +249,7 @@ export function renderSpreadsheet(
   });
 
   // Toolbar
-  toolbar.addEventListener('click', (e) => {
+  toolbar.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest('button[data-act]') as HTMLButtonElement | null;
     if (!btn) return;
     const act = btn.dataset.act;
@@ -269,6 +271,10 @@ export function renderSpreadsheet(
       case 'export': {
         const csv = exportCsv(rows.filter((r) => r.company));
         downloadFile(`job-applications-${todayIso()}.csv`, csv);
+        break;
+      }
+      case 'export-xlsx': {
+        await exportXlsx(rows.filter((r) => r.company), cvs, `job-applications-${todayIso()}.xlsx`);
         break;
       }
       case 'sample': {
