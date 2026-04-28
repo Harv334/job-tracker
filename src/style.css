@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    background-color: #0c0f1a;
+    color: #eceef3;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.12), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.08), transparent 35%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-ink-800/70 border border-ink-700 rounded-xl p-5 shadow-lg backdrop-blur-sm;
+  }
+  .card-tight {
+    @apply bg-ink-800/70 border border-ink-700 rounded-xl p-4 shadow-lg backdrop-blur-sm;
+  }
+  .kpi-label {
+    @apply text-xs uppercase tracking-wider text-ink-400;
+  }
+  .kpi-value {
+    @apply text-2xl font-semibold text-ink-50 mt-1;
+  }
+  .kpi-sub {
+    @apply text-xs text-ink-400 mt-1;
+  }
+  .badge {
+    @apply inline-block text-xs px-2 py-0.5 rounded-full border;
+  }
+  .badge-active   { @apply bg-accent/20 border-accent/40 text-accent-muted; }
+  .badge-offer    { @apply bg-success/20 border-success/40 text-emerald-300; }
+  .badge-rejected { @apply bg-danger/20 border-danger/40 text-red-300; }
+  .badge-ghosted  { @apply bg-ink-700 border-ink-600 text-ink-300; }
+  .badge-applied  { @apply bg-warn/20 border-warn/40 text-amber-300; }
+  .table-row:nth-child(odd) { background: rgba(255, 255, 255, 0.015); }
+  .input {
+    @apply bg-ink-900 border border-ink-700 rounded-md px-2 py-1 text-sm
+           focus:outline-none focus:border-accent text-ink-100;
+  }
+}
+
+/* D3 sankey */
+.sankey-node rect {
+  cursor: pointer;
+  shape-rendering: crispEdges;
+}
+.sankey-node text {
+  pointer-events: none;
+  fill: #eceef3;
+  font-size: 11px;
+  font-weight: 500;
+}
+.sankey-link {
+  fill: none;
+  stroke-opacity: 0.35;
+  transition: stroke-opacity 150ms ease;
+}
+.sankey-link:hover {
+  stroke-opacity: 0.7;
+}

@@ -1,0 +1,28 @@
+{
+  "versions": [
+    {
+      "id": "v1-generalist",
+      "label": "v1 — Generalist",
+      "description": "Original CV, broad framing",
+      "created": "2026-01-10"
+    },
+    {
+      "id": "v2-fintech",
+      "label": "v2 — Fintech-tilted",
+      "description": "Reordered to emphasize payments + risk work",
+      "created": "2026-02-02"
+    },
+    {
+      "id": "v3-product",
+      "label": "v3 — Product-focused",
+      "description": "Reframed for senior PM roles, metrics-heavy",
+      "created": "2026-02-20"
+    },
+    {
+      "id": "v4-ai",
+      "label": "v4 — AI/ML emphasis",
+      "description": "Highlighted ML projects and platform work",
+      "created": "2026-03-15"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+npm-debug.log*
+
+# Private data — NEVER commit. Anonymized public data is generated from this.
+data/applications.private.json
+data/cvs.private.json
+
+# Local CVs (the actual PDFs/docs); keep registry public, files private
+cvs/*.pdf
+cvs/*.docx
+!cvs/.gitkeep
