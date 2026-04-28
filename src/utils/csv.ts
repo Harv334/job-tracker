@@ -1,7 +1,6 @@
-import type { Application, Stage, Source } from '../types';
-import { STAGES, SOURCES } from '../types';
+import type { Application, Stage, Source, Relationship } from '../types';
+import { STAGES, SOURCES, RELATIONSHIPS } from '../types';
 
-// Columns in the CSV — order matters; header row uses these exact names.
 const COLUMNS = [
   'applied_date',
   'company',
@@ -16,15 +15,18 @@ const COLUMNS = [
   'last_update',
   'salary_min',
   'salary_max',
+  'interest_rating',
+  'contact_name',
+  'contact_email',
+  'contact_relationship',
+  'follow_up_date',
   'notes',
 ] as const;
 
 function escapeCell(v: unknown): string {
   if (v === null || v === undefined) return '';
   const s = String(v);
-  if (/[",\n\r]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
 
@@ -32,32 +34,12 @@ export function exportCsv(apps: Application[]): string {
   const lines: string[] = [];
   lines.push(COLUMNS.join(','));
   for (const app of apps) {
-    const row = COLUMNS.map((col) => {
-      switch (col) {
-        case 'applied_date':   return app.applied_date;
-        case 'company':        return app.company;
-        case 'role':           return app.role;
-        case 'sector':         return app.sector;
-        case 'company_stage':  return app.company_stage;
-        case 'company_size':   return app.company_size;
-        case 'location':       return app.location;
-        case 'source':         return app.source;
-        case 'cv_version':     return app.cv_version;
-        case 'current_status': return app.current_status;
-        case 'last_update':    return app.last_update;
-        case 'salary_min':     return app.salary_min;
-        case 'salary_max':     return app.salary_max;
-        case 'notes':          return app.notes;
-      }
-    });
+    const row = COLUMNS.map((col) => (app as unknown as Record<string, unknown>)[col]);
     lines.push(row.map(escapeCell).join(','));
   }
   return lines.join('\n');
 }
 
-// Minimal RFC 4180 parser. Handles quoted fields, escaped quotes, embedded
-// newlines/commas. Not the world's most robust — for hand-rolled CSVs it's
-// fine; if users hit edge cases we can swap in PapaParse.
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -65,7 +47,6 @@ function parseCsv(text: string): string[][] {
   let i = 0;
   let inQuotes = false;
   const len = text.length;
-
   while (i < len) {
     const ch = text[i];
     if (inQuotes) {
@@ -81,10 +62,7 @@ function parseCsv(text: string): string[][] {
     if (ch === '\n') { row.push(cell); cell = ''; rows.push(row); row = []; i++; continue; }
     cell += ch; i++;
   }
-  if (cell.length > 0 || row.length > 0) {
-    row.push(cell);
-    rows.push(row);
-  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
   return rows.filter((r) => r.some((c) => c.length > 0));
 }
 
@@ -106,6 +84,13 @@ function asSource(v: string | undefined): Source | undefined {
   return 'other';
 }
 
+function asRel(v: string | undefined): Relationship | undefined {
+  if (!v) return undefined;
+  const cleaned = v.trim().toLowerCase().replace(/\s+/g, '-');
+  if ((RELATIONSHIPS as readonly string[]).includes(cleaned)) return cleaned as Relationship;
+  return 'other';
+}
+
 function num(v: string | undefined): number | undefined {
   if (!v) return undefined;
   const n = Number(v);
@@ -119,16 +104,11 @@ function nonEmpty(v: string | undefined): string | undefined {
 export function importCsv(text: string): ImportResult {
   const rows = parseCsv(text);
   const warnings: string[] = [];
-  if (rows.length === 0) {
-    return { applications: [], warnings: ['Empty CSV.'] };
-  }
+  if (rows.length === 0) return { applications: [], warnings: ['Empty CSV.'] };
   const header = rows[0].map((h) => h.trim().toLowerCase());
   const indexOf = (name: string) => header.indexOf(name);
-
   const required = ['applied_date', 'company', 'current_status'];
-  for (const r of required) {
-    if (indexOf(r) < 0) warnings.push(`Missing required column: ${r}`);
-  }
+  for (const r of required) if (indexOf(r) < 0) warnings.push(`Missing required column: ${r}`);
 
   const applications: Application[] = [];
   for (let i = 1; i < rows.length; i++) {
@@ -158,6 +138,11 @@ export function importCsv(text: string): ImportResult {
       last_update: nonEmpty(get('last_update')),
       salary_min: num(get('salary_min')),
       salary_max: num(get('salary_max')),
+      interest_rating: num(get('interest_rating')),
+      contact_name: nonEmpty(get('contact_name')),
+      contact_email: nonEmpty(get('contact_email')),
+      contact_relationship: asRel(get('contact_relationship')),
+      follow_up_date: nonEmpty(get('follow_up_date')),
       notes: nonEmpty(get('notes')),
     });
   }
@@ -168,8 +153,7 @@ export function downloadFile(filename: string, content: string, mime = 'text/csv
   const blob = new Blob([content], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
+  a.href = url; a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

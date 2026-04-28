@@ -52,6 +52,15 @@ export const SOURCES = [
 
 export type Source = (typeof SOURCES)[number];
 
+export const RELATIONSHIPS = [
+  'recruiter',
+  'hiring-manager',
+  'referrer',
+  'other',
+] as const;
+
+export type Relationship = (typeof RELATIONSHIPS)[number];
+
 export interface StageEntry {
   stage: Stage;
   date: string | null;
@@ -78,6 +87,12 @@ export interface Application {
   salary_max?: number;
   notes?: string;
   links?: Record<string, string>;
+  // New
+  interest_rating?: number;       // 1-5 stars (your interest in the role)
+  contact_name?: string;
+  contact_email?: string;
+  contact_relationship?: Relationship;
+  follow_up_date?: string;        // when to nudge
 }
 
 export interface CvVersion {

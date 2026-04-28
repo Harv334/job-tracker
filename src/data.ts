@@ -1,4 +1,4 @@
-import type { AppData, Application, CvVersion } from './types';
+import type { AppData, Application, CvVersion, Relationship } from './types';
 import applicationsSample from '../data/applications.sample.json';
 import cvsSample from '../data/cvs.json';
 import { loadApplications, loadCvMeta, saveApplications, saveCvMeta } from './storage/local';
@@ -33,6 +33,11 @@ function normalize(raw: unknown): Application {
     salary_max,
     notes: r.notes as string | undefined,
     links: r.links as Record<string, string> | undefined,
+    interest_rating: r.interest_rating as number | undefined,
+    contact_name: r.contact_name as string | undefined,
+    contact_email: r.contact_email as string | undefined,
+    contact_relationship: r.contact_relationship as Relationship | undefined,
+    follow_up_date: r.follow_up_date as string | undefined,
   };
 }
 
@@ -43,13 +48,8 @@ export function loadAll(): AppData {
   };
 }
 
-export function saveApps(apps: Application[]): void {
-  saveApplications(apps);
-}
-
-export function saveCvs(cvs: CvVersion[]): void {
-  saveCvMeta(cvs);
-}
+export function saveApps(apps: Application[]): void { saveApplications(apps); }
+export function saveCvs(cvs: CvVersion[]): void { saveCvMeta(cvs); }
 
 export function loadSampleIntoStorage(): AppData {
   const sampleApps = (applicationsSample as { applications: unknown[] }).applications;
