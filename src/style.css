@@ -123,3 +123,18 @@
   transition: stroke-opacity 150ms ease;
 }
 .sankey-link:hover { stroke-opacity: 0.85; }
+
+@layer components {
+  /* Calendar */
+  .cal-chip {
+    @apply text-[11px] px-1.5 py-0.5 rounded text-left truncate w-full
+           border transition-colors cursor-pointer hover:brightness-95;
+  }
+  .cal-chip-followup  { @apply bg-amber-100 border-amber-300 text-amber-800; }
+  .cal-chip-interview { @apply bg-violet-100 border-violet-300 text-violet-800; }
+  .cal-chip-decision  { @apply bg-emerald-100 border-emerald-300 text-emerald-800; }
+  .cal-swatch {
+    @apply inline-block w-3 h-3 rounded border align-middle;
+  }
+}
+

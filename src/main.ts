@@ -8,6 +8,7 @@ import { renderKpis } from './components/kpis';
 import { renderBreakdownCharts } from './components/charts';
 import { renderSpreadsheet } from './components/spreadsheet';
 import { renderKanban } from './components/kanban';
+import { renderCalendar } from './components/calendar';
 import { renderCvManager } from './components/cv-manager';
 import { renderAiInsights } from './components/ai-insights';
 import { openAiSettings } from './components/ai-settings';
@@ -105,6 +106,15 @@ function renderKanbanTab(host: HTMLElement) {
   });
 }
 
+
+function renderCalendarTab(host: HTMLElement) {
+  renderCalendar(host, state.applications, {
+    onJumpToApp: () => {
+      tabs?.setActive('spreadsheet');
+    },
+  });
+}
+
 function renderDashboardTab(host: HTMLElement) {
   if (state.applications.length === 0) {
     host.innerHTML = `
@@ -188,6 +198,11 @@ function main() {
       id: 'kanban',
       label: 'Kanban',
       render: renderKanbanTab,
+    },
+    {
+      id: 'calendar',
+      label: 'Calendar',
+      render: renderCalendarTab,
     },
     {
       id: 'dashboard',
