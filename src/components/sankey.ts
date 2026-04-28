@@ -17,17 +17,17 @@ interface Link {
 }
 
 const stageColor: Record<string, string> = {
-  Applied: '#6366f1',
-  'Phone screen': '#8b5cf6',
-  'Hiring manager': '#a855f7',
-  Technical: '#d946ef',
-  Onsite: '#ec4899',
-  Offer: '#10b981',
-  Accepted: '#10b981',
-  Rejected: '#ef4444',
-  Ghosted: '#525a72',
-  Withdrawn: '#f59e0b',
-  'In progress': '#a5b4fc',
+  Applied: '#4f46e5',
+  'Phone screen': '#7c3aed',
+  'Hiring manager': '#9333ea',
+  Technical: '#c026d3',
+  Onsite: '#db2777',
+  Offer: '#059669',
+  Accepted: '#059669',
+  Rejected: '#dc2626',
+  Ghosted: '#7a8298',
+  Withdrawn: '#d97706',
+  'In progress': '#818cf8',
 };
 
 export function renderSankey(container: HTMLElement, apps: Application[]): void {
@@ -36,7 +36,7 @@ export function renderSankey(container: HTMLElement, apps: Application[]): void 
 
   if (links.length === 0) {
     container.innerHTML =
-      '<p class="text-ink-400 text-sm">No stage transitions yet — add applications to see the funnel.</p>';
+      '<p class="text-ink-500 text-sm">No stage transitions yet — add applications in the Spreadsheet tab to see the funnel.</p>';
     return;
   }
 
@@ -64,7 +64,6 @@ export function renderSankey(container: HTMLElement, apps: Application[]): void 
     links: links.map((l) => ({ ...l })),
   });
 
-  // Links
   svg
     .append('g')
     .selectAll('path')
@@ -81,10 +80,9 @@ export function renderSankey(container: HTMLElement, apps: Application[]): void 
     .text((d) => {
       const s = d.source as Node;
       const t = d.target as Node;
-      return `${s.name} → ${t.name}: ${d.value}`;
+      return `${s.name} -> ${t.name}: ${d.value}`;
     });
 
-  // Nodes
   const node = svg
     .append('g')
     .selectAll('g')

@@ -1,5 +1,3 @@
-// Stage names — keep this list canonical. The Sankey, table, and stats all
-// rely on it. Add new stages here first.
 export const STAGES = [
   'applied',
   'phone-screen',
@@ -15,13 +13,22 @@ export const STAGES = [
 
 export type Stage = (typeof STAGES)[number];
 
-// Stages where a candidate is still in the funnel (vs. terminal outcomes).
 export const ACTIVE_STAGES: Stage[] = [
   'applied',
   'phone-screen',
   'hiring-manager',
   'technical',
   'onsite',
+];
+
+export const FORWARD_STAGES: Stage[] = [
+  'applied',
+  'phone-screen',
+  'hiring-manager',
+  'technical',
+  'onsite',
+  'offer',
+  'accepted',
 ];
 
 export const TERMINAL_STAGES: Stage[] = [
@@ -34,36 +41,41 @@ export const TERMINAL_STAGES: Stage[] = [
 
 export const POSITIVE_TERMINALS: Stage[] = ['offer', 'accepted'];
 
-export type Source =
-  | 'referral'
-  | 'linkedin'
-  | 'cold-email'
-  | 'recruiter'
-  | 'job-board'
-  | 'other';
+export const SOURCES = [
+  'referral',
+  'linkedin',
+  'cold-email',
+  'recruiter',
+  'job-board',
+  'other',
+] as const;
+
+export type Source = (typeof SOURCES)[number];
 
 export interface StageEntry {
   stage: Stage;
-  date: string | null; // ISO date (YYYY-MM-DD) or null if not yet reached
+  date: string | null;
 }
 
 export interface Application {
   id: string;
   company: string;
-  role: string;
-  sector: string;
-  company_stage: string; // series-a, series-b, public, etc.
-  company_size: string;
-  location: string;
-  source: Source;
+  role?: string;
+  sector?: string;
+  company_stage?: string;
+  company_size?: string;
+  location?: string;
+  source?: Source;
   referrer?: string;
-  cv_version: string;
+  cv_version?: string;
   cover_letter_version?: string;
   applied_date: string;
+  last_update?: string;
   current_status: Stage;
-  outcome_stage?: Stage; // last active stage reached before a terminal outcome
-  stages: StageEntry[];
-  salary_range: number[]; // [] if unknown, or [low, high]
+  outcome_stage?: Stage;
+  stages?: StageEntry[];
+  salary_min?: number;
+  salary_max?: number;
   notes?: string;
   links?: Record<string, string>;
 }
@@ -71,8 +83,11 @@ export interface Application {
 export interface CvVersion {
   id: string;
   label: string;
-  description: string;
+  description?: string;
   created: string;
+  has_file?: boolean;
+  filename?: string;
+  size?: number;
 }
 
 export interface AppData {

@@ -1,38 +1,59 @@
 import {
   type Application,
   type Stage,
+  type StageEntry,
   ACTIVE_STAGES,
+  FORWARD_STAGES,
   POSITIVE_TERMINALS,
   TERMINAL_STAGES,
 } from '../types';
 
 export interface FunnelKpis {
   totalApplications: number;
-  responseRate: number;        // any movement past 'applied'
-  interviewRate: number;       // reached hiring-manager+
-  onsiteRate: number;          // reached onsite+
-  offerRate: number;           // ended (or sitting) at offer/accepted
+  responseRate: number;
+  interviewRate: number;
+  onsiteRate: number;
+  offerRate: number;
   rejectionRate: number;
   ghostRate: number;
-  active: number;              // currently in funnel, not terminal
+  active: number;
   medianDaysToFirstResponse: number | null;
   medianDaysToOutcome: number | null;
 }
 
-const stageOrder: Stage[] = [
-  'applied',
-  'phone-screen',
-  'hiring-manager',
-  'technical',
-  'onsite',
-  'offer',
-];
+export function getStages(app: Application): StageEntry[] {
+  if (app.stages && app.stages.length > 0) return app.stages;
+
+  const finalDate = app.last_update ?? app.applied_date;
+  const out: StageEntry[] = [{ stage: 'applied', date: app.applied_date }];
+
+  if (FORWARD_STAGES.includes(app.current_status) && app.current_status !== 'applied') {
+    const idx = FORWARD_STAGES.indexOf(app.current_status);
+    for (let i = 1; i <= idx; i++) {
+      out.push({
+        stage: FORWARD_STAGES[i],
+        date: i === idx ? finalDate : app.applied_date,
+      });
+    }
+  } else if (TERMINAL_STAGES.includes(app.current_status) &&
+             !POSITIVE_TERMINALS.includes(app.current_status)) {
+    if (app.outcome_stage) {
+      const outIdx = FORWARD_STAGES.indexOf(app.outcome_stage);
+      for (let i = 1; i <= outIdx; i++) {
+        out.push({ stage: FORWARD_STAGES[i], date: app.applied_date });
+      }
+    }
+    out.push({ stage: app.current_status, date: finalDate });
+  }
+  return out;
+}
 
 function reachedAtLeast(app: Application, stage: Stage): boolean {
-  const target = stageOrder.indexOf(stage);
+  const target = FORWARD_STAGES.indexOf(stage);
   if (target < 0) return false;
-  return app.stages.some((s) => {
-    const idx = stageOrder.indexOf(s.stage);
+  const stages = getStages(app);
+  return stages.some((s) => {
+    const idx = FORWARD_STAGES.indexOf(s.stage);
     return idx >= target;
   });
 }
@@ -60,16 +81,9 @@ export function computeKpis(apps: Application[]): FunnelKpis {
   const total = apps.length;
   if (total === 0) {
     return {
-      totalApplications: 0,
-      responseRate: 0,
-      interviewRate: 0,
-      onsiteRate: 0,
-      offerRate: 0,
-      rejectionRate: 0,
-      ghostRate: 0,
-      active: 0,
-      medianDaysToFirstResponse: null,
-      medianDaysToOutcome: null,
+      totalApplications: 0, responseRate: 0, interviewRate: 0, onsiteRate: 0,
+      offerRate: 0, rejectionRate: 0, ghostRate: 0, active: 0,
+      medianDaysToFirstResponse: null, medianDaysToOutcome: null,
     };
   }
 
@@ -79,24 +93,22 @@ export function computeKpis(apps: Application[]): FunnelKpis {
   const offers = apps.filter((a) => POSITIVE_TERMINALS.includes(a.current_status)).length;
   const rejects = apps.filter((a) => a.current_status === 'rejected').length;
   const ghosts = apps.filter((a) => a.current_status === 'ghosted').length;
-  const active = apps.filter(
-    (a) => ACTIVE_STAGES.includes(a.current_status) && a.current_status !== 'applied'
-  ).length + apps.filter((a) => a.current_status === 'applied' && !isTerminal(a)).length;
+  const active = apps.filter((a) => ACTIVE_STAGES.includes(a.current_status)).length;
 
-  // Days to first response: applied -> first non-applied stage entry with a date.
   const firstResponseDays: number[] = [];
   for (const app of apps) {
-    const applied = app.stages.find((s) => s.stage === 'applied')?.date;
-    const first = app.stages.find((s) => s.stage !== 'applied' && s.date);
+    const stages = getStages(app);
+    const applied = stages.find((s) => s.stage === 'applied')?.date;
+    const first = stages.find((s) => s.stage !== 'applied' && s.date);
     if (applied && first?.date) firstResponseDays.push(daysBetween(applied, first.date));
   }
 
-  // Days to outcome: applied -> terminal stage date.
   const outcomeDays: number[] = [];
   for (const app of apps) {
     if (!isTerminal(app)) continue;
-    const applied = app.stages.find((s) => s.stage === 'applied')?.date;
-    const terminal = app.stages.find((s) => TERMINAL_STAGES.includes(s.stage));
+    const stages = getStages(app);
+    const applied = stages.find((s) => s.stage === 'applied')?.date;
+    const terminal = stages.find((s) => TERMINAL_STAGES.includes(s.stage));
     if (applied && terminal?.date) outcomeDays.push(daysBetween(applied, terminal.date));
   }
 
@@ -114,25 +126,23 @@ export function computeKpis(apps: Application[]): FunnelKpis {
   };
 }
 
-// ---- Group counts ---------------------------------------------------------
-
 export function countBy<K extends string>(
   apps: Application[],
-  key: (a: Application) => K
+  key: (a: Application) => K | undefined
 ): Map<K, number> {
   const m = new Map<K, number>();
   for (const a of apps) {
     const k = key(a);
+    if (!k) continue;
     m.set(k, (m.get(k) ?? 0) + 1);
   }
   return m;
 }
 
-// CV-version effectiveness: per CV version, count interviews and offers.
 export interface CvEffectiveness {
   cv: string;
   applications: number;
-  interviews: number;     // reached hiring-manager+
+  interviews: number;
   offers: number;
   interviewRate: number;
   offerRate: number;
@@ -141,16 +151,14 @@ export interface CvEffectiveness {
 export function cvEffectiveness(apps: Application[]): CvEffectiveness[] {
   const groups = new Map<string, Application[]>();
   for (const a of apps) {
+    if (!a.cv_version) continue;
     const arr = groups.get(a.cv_version) ?? [];
     arr.push(a);
     groups.set(a.cv_version, arr);
   }
-
   return [...groups.entries()].map(([cv, list]) => {
     const interviews = list.filter((a) => reachedAtLeast(a, 'hiring-manager')).length;
-    const offers = list.filter((a) =>
-      POSITIVE_TERMINALS.includes(a.current_status)
-    ).length;
+    const offers = list.filter((a) => POSITIVE_TERMINALS.includes(a.current_status)).length;
     return {
       cv,
       applications: list.length,
@@ -162,33 +170,27 @@ export function cvEffectiveness(apps: Application[]): CvEffectiveness[] {
   });
 }
 
-// ---- Sankey link generation ----------------------------------------------
-
 export interface SankeyLink {
   source: string;
   target: string;
   value: number;
 }
 
-// Walk each application's stage history and emit one link per consecutive
-// (stage_n -> stage_n+1) transition. Active applications get a final link
-// to a synthetic "In progress" node so they show up in the diagram.
 export function buildSankeyLinks(apps: Application[]): {
   nodes: { name: string }[];
   links: SankeyLink[];
 } {
   const counts = new Map<string, number>();
   const nodeSet = new Set<string>();
-
   const bump = (a: string, b: string) => {
-    nodeSet.add(a);
-    nodeSet.add(b);
+    nodeSet.add(a); nodeSet.add(b);
     const k = `${a}|${b}`;
     counts.set(k, (counts.get(k) ?? 0) + 1);
   };
 
   for (const app of apps) {
-    const ordered = [...app.stages].sort((a, b) => {
+    const stages = getStages(app);
+    const ordered = [...stages].sort((a, b) => {
       const da = a.date ? new Date(a.date).getTime() : Infinity;
       const db = b.date ? new Date(b.date).getTime() : Infinity;
       return da - db;
@@ -196,11 +198,7 @@ export function buildSankeyLinks(apps: Application[]): {
     for (let i = 0; i < ordered.length - 1; i++) {
       bump(prettyStage(ordered[i].stage), prettyStage(ordered[i + 1].stage));
     }
-    // If currently active, draw a link from current_status -> "In progress".
-    if (
-      ACTIVE_STAGES.includes(app.current_status) &&
-      app.current_status !== 'applied'
-    ) {
+    if (ACTIVE_STAGES.includes(app.current_status) && app.current_status !== 'applied') {
       bump(prettyStage(app.current_status), 'In progress');
     } else if (app.current_status === 'applied') {
       bump('Applied', 'In progress');
@@ -211,11 +209,7 @@ export function buildSankeyLinks(apps: Application[]): {
     const [source, target] = k.split('|');
     return { source, target, value };
   });
-
-  return {
-    nodes: [...nodeSet].map((name) => ({ name })),
-    links,
-  };
+  return { nodes: [...nodeSet].map((name) => ({ name })), links };
 }
 
 export function prettyStage(s: Stage | string): string {

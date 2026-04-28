@@ -28,18 +28,18 @@ Chart.register(
 );
 
 const palette = [
-  '#6366f1',
-  '#8b5cf6',
-  '#a855f7',
-  '#ec4899',
-  '#f43f5e',
-  '#f59e0b',
-  '#10b981',
-  '#06b6d4',
+  '#4f46e5',
+  '#7c3aed',
+  '#9333ea',
+  '#db2777',
+  '#dc2626',
+  '#d97706',
+  '#059669',
+  '#0891b2',
   '#7a8298',
 ];
 
-const baseTextColor = '#a9b0c2';
+const baseTextColor = '#525a72';
 
 function paletteFor(n: number): string[] {
   return Array.from({ length: n }, (_, i) => palette[i % palette.length]);
@@ -56,8 +56,8 @@ function chartCard(title: string, subtitle?: string): HTMLDivElement {
   card.className = 'card';
   card.innerHTML = `
     <div class="flex items-baseline justify-between mb-3">
-      <h3 class="text-sm font-semibold text-ink-100 uppercase tracking-wider">${title}</h3>
-      ${subtitle ? `<span class="text-xs text-ink-400">${subtitle}</span>` : ''}
+      <h3 class="text-sm font-semibold text-ink-700 uppercase tracking-wider">${title}</h3>
+      ${subtitle ? `<span class="text-xs text-ink-500">${subtitle}</span>` : ''}
     </div>
     <div class="chart-wrap" style="position: relative; height: 220px;"></div>
   `;
@@ -83,7 +83,7 @@ export function renderBreakdownCharts(
   // Source
   const sourceCard = chartCard('By source');
   grid.appendChild(sourceCard);
-  const sourceMap = countBy(apps, (a) => prettySource(a.source));
+  const sourceMap = countBy(apps, (a) => a.source ? prettySource(a.source) : undefined);
   doughnut(sourceCard.querySelector('.chart-wrap') as HTMLElement, sourceMap);
 
   // Company stage
@@ -110,7 +110,7 @@ function doughnut(parent: HTMLElement, data: Map<string, number>) {
         {
           data: values,
           backgroundColor: paletteFor(labels.length),
-          borderColor: '#171b2a',
+          borderColor: '#ffffff',
           borderWidth: 2,
         },
       ],
@@ -152,13 +152,13 @@ function cvBars(parent: HTMLElement, apps: Application[], cvs: CvVersion[]) {
         {
           label: 'Interview %',
           data: interview,
-          backgroundColor: '#8b5cf6',
+          backgroundColor: '#7c3aed',
           borderRadius: 4,
         },
         {
           label: 'Offer %',
           data: offer,
-          backgroundColor: '#10b981',
+          backgroundColor: '#059669',
           borderRadius: 4,
         },
       ],
@@ -170,7 +170,7 @@ function cvBars(parent: HTMLElement, apps: Application[], cvs: CvVersion[]) {
         x: { ticks: { color: baseTextColor, font: { size: 10 } }, grid: { display: false } },
         y: {
           ticks: { color: baseTextColor, callback: (v) => `${v}%` },
-          grid: { color: 'rgba(255,255,255,0.05)' },
+          grid: { color: 'rgba(0,0,0,0.06)' },
           max: 100,
         },
       },
