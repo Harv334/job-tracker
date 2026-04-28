@@ -23,9 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       # GitHub Pages serves project sites at https://<user>.github.io/<repo>/
       # so we set Vite's base path accordingly.
