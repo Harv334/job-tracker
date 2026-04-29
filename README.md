@@ -3,6 +3,7 @@
 A personal dashboard for the job search. Tracks every application, draws a
 Sankey diagram of the funnel, and tells you which CV version is actually
 landing interviews.
+Use it here: https://harv334.github.io/job-tracker/
 
 ## Features
 
