@@ -13,6 +13,7 @@ import { exportCsv, importCsv, downloadFile } from '../utils/csv';
 import { exportXlsx } from '../utils/xlsx';
 import { saveApps, loadSampleIntoStorage } from '../data';
 import { openJdExtractModal } from './ai-jd-modal';
+import { openSmartImportModal } from './smart-import-modal';
 import { mergeExtracted } from '../ai/extract';
 
 interface SpreadsheetCallbacks {
@@ -47,7 +48,7 @@ export function renderSpreadsheet(
     <div class="flex items-center gap-2 flex-wrap">
       <button class="btn-secondary" data-act="add">+ Add row</button>
       <button class="btn-secondary" data-act="add-from-jd" title="Paste a JD, AI fills the row">+ Add from JD</button>
-      <button class="btn-secondary" data-act="import">Import CSV</button>
+      <button class="btn-secondary" data-act="import" title="Auto-detect columns from any tracker">Smart import</button>
       <button class="btn-secondary" data-act="export">Export CSV</button>
       <button class="btn-secondary" data-act="export-xlsx">Export Excel</button>
       <input type="file" accept=".csv,text/csv" class="hidden" data-act="file" />
@@ -266,7 +267,14 @@ export function renderSpreadsheet(
         });
         break;
       case 'import':
-        fileInput.click();
+        openSmartImportModal({
+          onImport: (apps, replace) => {
+            rows = replace ? apps : [...rows.filter((r) => r.company), ...apps];
+            if (rows.length === 0) rows.push(blankApp());
+            host.innerHTML = '';
+            renderSpreadsheet(host, rows, cvs, cb);
+          },
+        });
         break;
       case 'export': {
         const csv = exportCsv(rows.filter((r) => r.company));
