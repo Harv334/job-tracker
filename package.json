@@ -12,8 +12,7 @@
   "dependencies": {
     "chart.js": "^4.4.6",
     "d3": "^7.9.0",
-    "d3-sankey": "^0.12.3",
-    "write-excel-file": "^2.3.7"
+    "d3-sankey": "^0.12.3"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",

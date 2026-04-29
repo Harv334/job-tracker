@@ -10,7 +10,6 @@ import {
 } from '../types';
 import { prettyStage, prettySource } from '../utils/stats';
 import { exportCsv, importCsv, downloadFile } from '../utils/csv';
-import { exportXlsx } from '../utils/xlsx';
 import { saveApps, loadSampleIntoStorage } from '../data';
 import { openJdExtractModal } from './ai-jd-modal';
 import { openSmartImportModal } from './smart-import-modal';
@@ -49,8 +48,7 @@ export function renderSpreadsheet(
       <button class="btn-secondary" data-act="add">+ Add row</button>
       <button class="btn-secondary" data-act="add-from-jd" title="Paste a JD, AI fills the row">+ Add from JD</button>
       <button class="btn-secondary" data-act="import" title="Auto-detect columns from any tracker">Smart import</button>
-      <button class="btn-secondary" data-act="export">Export CSV</button>
-      <button class="btn-secondary" data-act="export-xlsx">Export Excel</button>
+      <button class="btn-primary" data-act="export" title="Download a polished CSV">⬇ Export CSV</button>
       <input type="file" accept=".csv,text/csv" class="hidden" data-act="file" />
     </div>
     <div class="flex items-center gap-2">
@@ -277,12 +275,8 @@ export function renderSpreadsheet(
         });
         break;
       case 'export': {
-        const csv = exportCsv(rows.filter((r) => r.company));
+        const csv = exportCsv(rows.filter((r) => r.company), cvs);
         downloadFile(`job-applications-${todayIso()}.csv`, csv);
-        break;
-      }
-      case 'export-xlsx': {
-        await exportXlsx(rows.filter((r) => r.company), cvs, `job-applications-${todayIso()}.xlsx`);
         break;
       }
       case 'sample': {

@@ -1,44 +1,65 @@
-import type { Application, Stage, Source, Relationship } from '../types';
+// CSV import + (prettified) export. Export uses Title Case headers,
+// human-readable status/source/relationship values, currency-formatted
+// salaries, and a UTF-8 BOM so Excel auto-detects encoding when you open
+// the file directly. Re-importing this file via Smart Import works because
+// our header detector handles the Title Case forms via synonyms.
+
+import type { Application, Stage, Source, Relationship, CvVersion } from '../types';
 import { STAGES, SOURCES, RELATIONSHIPS } from '../types';
+import { prettyStage, prettySource } from './stats';
 
-const COLUMNS = [
-  'applied_date',
-  'company',
-  'role',
-  'sector',
-  'company_stage',
-  'company_size',
-  'location',
-  'source',
-  'cv_version',
-  'current_status',
-  'last_update',
-  'salary_min',
-  'salary_max',
-  'interest_rating',
-  'contact_name',
-  'contact_email',
-  'contact_relationship',
-  'follow_up_date',
-  'notes',
-] as const;
-
-function escapeCell(v: unknown): string {
-  if (v === null || v === undefined) return '';
-  const s = String(v);
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+interface Column {
+  header: string;
+  get: (a: Application, ctx: ExportContext) => string;
 }
 
-export function exportCsv(apps: Application[]): string {
+interface ExportContext {
+  cvLabel: (id: string | undefined) => string;
+}
+
+const fmtMoney = (n: number | undefined): string => {
+  if (n === undefined || n === null || !Number.isFinite(n)) return '';
+  return `$${n.toLocaleString('en-US')}`;
+};
+
+const COLUMNS: Column[] = [
+  { header: 'Date',         get: (a) => a.applied_date },
+  { header: 'Company',      get: (a) => a.company },
+  { header: 'Role',         get: (a) => a.role ?? '' },
+  { header: 'Sector',       get: (a) => a.sector ?? '' },
+  { header: 'Source',       get: (a) => (a.source ? prettySource(a.source) : '') },
+  { header: 'CV',           get: (a, ctx) => ctx.cvLabel(a.cv_version) },
+  { header: 'Status',       get: (a) => prettyStage(a.current_status) },
+  { header: 'Interest',     get: (a) => (a.interest_rating ? '★'.repeat(a.interest_rating) : '') },
+  { header: 'Contact',      get: (a) => a.contact_name ?? '' },
+  { header: 'Relationship', get: (a) => (a.contact_relationship ? prettySource(a.contact_relationship) : '') },
+  { header: 'Follow-up',    get: (a) => a.follow_up_date ?? '' },
+  { header: 'Last update',  get: (a) => a.last_update ?? '' },
+  { header: 'Salary min',   get: (a) => fmtMoney(a.salary_min) },
+  { header: 'Salary max',   get: (a) => fmtMoney(a.salary_max) },
+  { header: 'Notes',        get: (a) => a.notes ?? '' },
+];
+
+function escapeCell(v: string): string {
+  if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+  return v;
+}
+
+export function exportCsv(apps: Application[], cvs: CvVersion[] = []): string {
+  const ctx: ExportContext = {
+    cvLabel: (id) => (id ? cvs.find((c) => c.id === id)?.label ?? id : ''),
+  };
   const lines: string[] = [];
-  lines.push(COLUMNS.join(','));
-  for (const app of apps) {
-    const row = COLUMNS.map((col) => (app as unknown as Record<string, unknown>)[col]);
-    lines.push(row.map(escapeCell).join(','));
+  lines.push(COLUMNS.map((c) => c.header).join(','));
+  for (const a of apps) {
+    lines.push(COLUMNS.map((c) => escapeCell(c.get(a, ctx))).join(','));
   }
-  return lines.join('\n');
+  // UTF-8 BOM so Excel auto-detects UTF-8 instead of mangling accents.
+  return '﻿' + lines.join('\r\n') + '\r\n';
 }
+
+// ---- Importer (kept for legacy / API users; the Smart Import modal is
+// preferred for foreign trackers since it handles synonyms and weird formats) ----
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -46,6 +67,8 @@ function parseCsv(text: string): string[][] {
   let cell = '';
   let i = 0;
   let inQuotes = false;
+  // Strip BOM if present.
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const len = text.length;
   while (i < len) {
     const ch = text[i];
@@ -93,7 +116,8 @@ function asRel(v: string | undefined): Relationship | undefined {
 
 function num(v: string | undefined): number | undefined {
   if (!v) return undefined;
-  const n = Number(v);
+  const cleaned = String(v).replace(/[$,£€\s]/g, '');
+  const n = Number(cleaned);
   return Number.isFinite(n) ? n : undefined;
 }
 
@@ -105,10 +129,8 @@ export function importCsv(text: string): ImportResult {
   const rows = parseCsv(text);
   const warnings: string[] = [];
   if (rows.length === 0) return { applications: [], warnings: ['Empty CSV.'] };
-  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const header = rows[0].map((h) => h.trim().toLowerCase().replace(/[ \-]/g, '_'));
   const indexOf = (name: string) => header.indexOf(name);
-  const required = ['applied_date', 'company', 'current_status'];
-  for (const r of required) if (indexOf(r) < 0) warnings.push(`Missing required column: ${r}`);
 
   const applications: Application[] = [];
   for (let i = 1; i < rows.length; i++) {
@@ -117,7 +139,7 @@ export function importCsv(text: string): ImportResult {
       const idx = indexOf(col);
       return idx >= 0 ? cells[idx] : undefined;
     };
-    const applied_date = nonEmpty(get('applied_date')) ?? '';
+    const applied_date = nonEmpty(get('applied_date') ?? get('date')) ?? '';
     const company = nonEmpty(get('company')) ?? '';
     if (!applied_date || !company) {
       warnings.push(`Row ${i + 1}: skipped (missing applied_date or company).`);
@@ -133,16 +155,16 @@ export function importCsv(text: string): ImportResult {
       company_size: nonEmpty(get('company_size')),
       location: nonEmpty(get('location')),
       source: asSource(get('source')),
-      cv_version: nonEmpty(get('cv_version')),
-      current_status: asStage(get('current_status')),
+      cv_version: nonEmpty(get('cv') ?? get('cv_version')),
+      current_status: asStage(get('status') ?? get('current_status')),
       last_update: nonEmpty(get('last_update')),
       salary_min: num(get('salary_min')),
       salary_max: num(get('salary_max')),
-      interest_rating: num(get('interest_rating')),
-      contact_name: nonEmpty(get('contact_name')),
+      interest_rating: get('interest') ? (get('interest') as string).match(/★/g)?.length : num(get('interest_rating')),
+      contact_name: nonEmpty(get('contact') ?? get('contact_name')),
       contact_email: nonEmpty(get('contact_email')),
-      contact_relationship: asRel(get('contact_relationship')),
-      follow_up_date: nonEmpty(get('follow_up_date')),
+      contact_relationship: asRel(get('relationship') ?? get('contact_relationship')),
+      follow_up_date: nonEmpty(get('follow_up')) ?? nonEmpty(get('follow_up_date')),
       notes: nonEmpty(get('notes')),
     });
   }
