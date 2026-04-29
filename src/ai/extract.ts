@@ -12,18 +12,23 @@ export interface JdExtractResult {
   salary_max?: number;
 }
 
-const SYSTEM = `You extract structured data from job descriptions.
+const SYSTEM = `You extract structured data from job descriptions for a UK
+job seeker. Default assumptions: GBP for any salary unless explicitly USD/EUR;
+UK locations unless stated otherwise.
+
 Output ONLY a JSON object with these fields (omit any you can't determine):
 {
   "company": "Company name",
   "role": "Role title (no seniority prefix unless meaningful)",
-  "sector": "lowercase short label, e.g. fintech, healthtech, ai-ml, climate, devtools, ecommerce, gaming, edtech, govtech, mediatech, crypto, b2b-saas",
-  "company_stage": "one of: pre-seed, seed, series-a, series-b, series-c, series-d, public, private, nonprofit",
+  "sector": "lowercase short label, e.g. fintech, healthtech, ai-ml, climate, devtools, ecommerce, gaming, edtech, govtech, mediatech, crypto, b2b-saas, banking, insurance, pharma, legal, consulting, retail",
+  "company_stage": "one of: pre-seed, seed, series-a, series-b, series-c, series-d, public, private, government, charity",
   "company_size": "one of: 1-20, 20-100, 100-500, 500-1000, 1000-10000, 10000+",
-  "location": "Concise location, e.g. Remote (US), London (Hybrid)",
-  "salary_min": numeric annual USD or local-currency lower bound,
-  "salary_max": numeric annual upper bound
+  "location": "Concise UK-style location, e.g. 'London (Hybrid)', 'Manchester (On-site)', 'Remote (UK)', 'Edinburgh (Hybrid)'",
+  "salary_min": numeric annual GBP lower bound (no symbols, no commas, e.g. 90000),
+  "salary_max": numeric annual GBP upper bound
 }
+If salary is given in £k (e.g. "£90k"), convert to whole pounds (90000).
+If salary is given as a day rate (e.g. "£500/day"), skip the salary fields.
 Do not invent fields. If a value isn't present in the JD, omit the key.`;
 
 export async function extractFromJd(jdText: string): Promise<JdExtractResult> {
@@ -35,8 +40,6 @@ export async function extractFromJd(jdText: string): Promise<JdExtractResult> {
   return extractJson<JdExtractResult>(text);
 }
 
-// Merge extracted fields onto an existing Application without overwriting
-// values the user already filled in.
 export function mergeExtracted(
   app: Application,
   extracted: JdExtractResult,

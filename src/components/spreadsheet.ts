@@ -147,8 +147,8 @@ export function renderSpreadsheet(
         <td><select data-field="contact_relationship">${relOptions}</select></td>
         <td><input type="date" data-field="follow_up_date" value="${escapeAttr(app.follow_up_date ?? '')}" /></td>
         <td><input type="date" data-field="last_update" value="${escapeAttr(app.last_update ?? '')}" /></td>
-        <td><input type="number" data-field="salary_min" value="${app.salary_min ?? ''}" placeholder="—" /></td>
-        <td><input type="number" data-field="salary_max" value="${app.salary_max ?? ''}" placeholder="—" /></td>
+        <td><input type="number" data-field="salary_min" value="${app.salary_min ?? ''}" placeholder="£" /></td>
+        <td><input type="number" data-field="salary_max" value="${app.salary_max ?? ''}" placeholder="£" /></td>
         <td><input type="text" data-field="notes" value="${escapeAttr(app.notes ?? '')}" placeholder="—" /></td>
         <td class="col-actions">
           <button class="btn-ghost text-xs px-2" data-act="del" title="Delete row">×</button>

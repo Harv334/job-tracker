@@ -2,7 +2,7 @@ import { aiCall } from './client';
 import type { Application } from '../types';
 import { TERMINAL_STAGES, POSITIVE_TERMINALS } from '../types';
 
-const SYSTEM = `You are a job-search coach analyzing a candidate's recent
+const SYSTEM = `You are a job-search coach analysing a UK candidate's recent
 rejections and ghosts. Be concise, specific, and actionable. Highlight
 patterns the candidate might not see (sectors, role levels, stages where
 they're losing, CV-version effects, time-of-year). Do not invent data.

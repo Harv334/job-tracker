@@ -17,10 +17,8 @@ interface ExportContext {
   cvLabel: (id: string | undefined) => string;
 }
 
-const fmtMoney = (n: number | undefined): string => {
-  if (n === undefined || n === null || !Number.isFinite(n)) return '';
-  return `$${n.toLocaleString('en-US')}`;
-};
+// Use the centralised locale formatter — defaults to GBP / en-GB.
+import { fmtMoney } from './locale';
 
 const COLUMNS: Column[] = [
   { header: 'Date',         get: (a) => a.applied_date },
